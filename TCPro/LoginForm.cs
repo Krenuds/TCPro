@@ -26,8 +26,6 @@ namespace TCPro
                 string password = this.password_txt.Text;
                 string myConnectionString = "datasource=localhost; port=3306; username = " + user + "; password = "+ password;
                 MySqlConnection myConnection = new MySqlConnection(myConnectionString);
-         
-                MySqlCommand myCommand = new MySqlCommand("SELECT * FROM tcpro.employee;");
                 myConnection.Open();
                 this.Hide();
 

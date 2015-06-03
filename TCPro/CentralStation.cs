@@ -127,20 +127,17 @@ namespace TCPro
                 if(WBselectDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
                     this.label_WBpath.Text = WBselectDialog.FileName;
+                    workbook = BuiltWorkBook(WBselectDialog);
 
-                    workbook = new OleDbConnection();
-                    workbook.ConnectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + WBselectDialog.FileName + "; Extended Properties='Excel 12.0 Xml;HDR=YES';";
-                    workbook.Open();
-                    DataTable sheetsTable = workbook.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null);
-
-                    foreach (DataRow row in sheetsTable.Rows)
+                    // Grabs the sheet names from the workbook.
+                    try
                     {
-                        this.combo_sheets.Items.Add(row["TABLE_NAME"].ToString());
+                        UpdateComboSheets(workbook.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null));
                     }
-
-                    this.combo_sheets.SelectedIndex = 1;
-                    this.button_loadSheet.Enabled = true;
-                    this.workbookAnalysisToolStripMenuItem.Enabled = true;
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message);
+                    }
                     workbook.Close();
                 }
                 
@@ -150,6 +147,26 @@ namespace TCPro
                 MessageBox.Show(ex.Message);
             }
 
+        }
+
+        private OleDbConnection BuiltWorkBook(OpenFileDialog dialog)
+        {
+            workbook = new OleDbConnection();
+            workbook.ConnectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + dialog.FileName + "; Extended Properties='Excel 12.0 Xml;HDR=YES';";
+            return workbook;
+        }
+
+        private void UpdateComboSheets(DataTable sheetList)
+        {
+            combo_sheets.Items.Clear();
+            foreach (DataRow row in sheetList.Rows)
+            {
+                this.combo_sheets.Items.Add(row["TABLE_NAME"].ToString());
+            }
+
+            this.combo_sheets.SelectedIndex = 1;
+            this.button_loadSheet.Enabled = true;
+            this.workbookAnalysisToolStripMenuItem.Enabled = true;  
         }
 
         private void button_loadSheet_Click(object sender, EventArgs e)
