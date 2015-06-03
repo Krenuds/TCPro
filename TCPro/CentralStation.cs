@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
+using System.Data.OleDb;
 
 namespace TCPro
 {
@@ -18,13 +19,14 @@ namespace TCPro
         MySqlCommand myCommand;
         MySqlDataReader myReader;
         DataTable myDataTable;
+        DataTable excelDataTable;
         BindingSource myBinder;
+        OleDbConnection workbook;
 
         public CentralStation(MySqlConnection _myConnection)
         {
             InitializeComponent();
             myConnection = _myConnection;
-           
         }
 
         private void PopulateTableSelection()
@@ -62,8 +64,8 @@ namespace TCPro
                 myAdapter.SelectCommand = myCommand;
                 myDataTable.Clear();
                 myDataTable.Columns.Clear();
+
                 myAdapter.Fill(myDataTable);
-               
                 myBinder.DataSource = myDataTable;
                 dataGridView1.DataSource = myBinder;
                 myAdapter.Update(myDataTable);
@@ -115,6 +117,59 @@ namespace TCPro
             myBinder = new BindingSource();
 
             PopulateTableSelection();
+        }
+
+        private void button_openWorkbook_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                OpenFileDialog WBselectDialog = new OpenFileDialog();
+                if(WBselectDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    this.label_WBpath.Text = WBselectDialog.FileName;
+
+                    workbook = new OleDbConnection();
+                    workbook.ConnectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + WBselectDialog.FileName + "; Extended Properties='Excel 12.0 Xml;HDR=YES';";
+                    workbook.Open();
+                    DataTable sheetsTable = workbook.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null);
+
+                    foreach (DataRow row in sheetsTable.Rows)
+                    {
+                        this.combo_sheets.Items.Add(row["TABLE_NAME"].ToString());
+                    }
+
+                    this.combo_sheets.SelectedIndex = 1;
+                    this.button_loadSheet.Enabled = true;
+                    this.workbookAnalysisToolStripMenuItem.Enabled = true;
+                    workbook.Close();
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+
+        }
+
+        private void button_loadSheet_Click(object sender, EventArgs e)
+        {
+            OleDbDataAdapter excelAdapter = new OleDbDataAdapter("SELECT * FROM [" + this.combo_sheets.Text +"]", workbook);
+            excelDataTable = new DataTable();
+            excelAdapter.Fill(excelDataTable);
+            excelDataGridView.DataSource = excelDataTable;
+        }
+
+        private void workbookAnalysisToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            foreach (DataRow row in excelDataTable.Rows)
+            {
+                foreach (DataColumn col in excelDataTable.Columns)
+                {
+                    if (row[col].ToString() != "")
+                    this.listBox_unresolvedItems.Items.Add(row[col]);
+                }
+            }
         }
     }
 }
